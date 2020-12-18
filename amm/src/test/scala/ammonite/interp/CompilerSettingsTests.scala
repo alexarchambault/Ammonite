@@ -23,7 +23,7 @@ object CompilerSettingsTests extends TestSuite {
         val storage = Storage.InMemory()
         val interp = createTestInterp(
           storage,
-          predefImports = Interpreter.predefImports
+          predefImports = Interpreter.predefImports(scala.util.Properties.versionNumberString)
         )
         Scripts.runScript(os.pwd, scriptPath / "configureCompiler.sc", interp)
 
@@ -45,7 +45,7 @@ object CompilerSettingsTests extends TestSuite {
       val storage = Storage.InMemory()
       val interp = createTestInterp(
         storage,
-        predefImports = Interpreter.predefImports
+        predefImports = Interpreter.predefImports(scala.util.Properties.versionNumberString)
       )
       Scripts.runScript(os.pwd, scriptPath / "preConfigureCompiler.sc", interp)
 

@@ -5,11 +5,14 @@ import coursierapi.{Dependency, Module}
 object IvyConstructor extends IvyConstructor {
 
   def binaryVersion(version: String): String =
-    version
-      .stripPrefix("version ")
-      .split('.')
-      .take(2)
-      .mkString(".")
+    if (version.forall(c => c.isDigit || c == '.'))
+      version
+        .stripPrefix("version ")
+        .split('.')
+        .take(2)
+        .mkString(".")
+    else
+      version // milestones or RC are always fully cross-versioned
 
   val scalaBinaryVersion = binaryVersion(scala.util.Properties.versionString)
 

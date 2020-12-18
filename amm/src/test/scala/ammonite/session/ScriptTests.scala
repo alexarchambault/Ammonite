@@ -257,7 +257,7 @@ object ScriptTests extends TestSuite{
           val storage = new Storage.Folder(os.temp.dir(prefix = "ammonite-tester"))
           val interp2 = createTestInterp(
             storage,
-            predefImports = ammonite.interp.Interpreter.predefImports
+            predefImports = ammonite.interp.Interpreter.predefImports(scala.util.Properties.versionNumberString)
           )
 
           val Res.Failure(msg) =

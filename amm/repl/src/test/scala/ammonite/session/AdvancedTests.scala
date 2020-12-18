@@ -12,8 +12,11 @@ object AdvancedTests extends TestSuite{
     println("AdvancedTests")
     val check = new DualTestRepl()
     test("scalaVersion"){
+      val getVersion =
+        if (check.scala2_12) "scala.util.Properties.versionNumberString"
+        else "dotty.tools.dotc.config.Properties.versionNumberString"
       check.session(s"""
-        @ val sv = scala.util.Properties.versionNumberString
+        @ val sv = $getVersion
         sv: String = "${check.userScalaVersion}"
 
         @ val check = sv == "${check.userScalaVersion}"
@@ -40,17 +43,17 @@ object AdvancedTests extends TestSuite{
         defined class Foo
 
         @ Foo(1, "", Nil)
-        res2: Foo = Foo(1, "", List())
+        res2: Foo = Foo(i = 1, s0 = "", s1 = List())
 
         @ Foo(
-        @   1234567,
-        @   "I am a cow, hear me moo",
-        @   Seq("I weigh twice as much as you", "and I look good on the barbecue")
+        @   i = 1234567,
+        @   s0 = "I am a cow, hear me moo",
+        @   s1 = Seq("I weigh twice as much as you", "and I look good on the barbecue")
         @ )
         res3: Foo = Foo(
-          1234567,
-          "I am a cow, hear me moo",
-          List("I weigh twice as much as you", "and I look good on the barbecue")
+          i = 1234567,
+          s0 = "I am a cow, hear me moo",
+          s1 = List("I weigh twice as much as you", "and I look good on the barbecue")
         )
       """)
     }

@@ -9,6 +9,7 @@ import ammonite.util.Res
   */
 class DualTestRepl(runtime: TestReplRuntime = TestRepl.sharedRuntime) { dual =>
 
+  def scala2 = runtime.scala2
   def scala2_12 = runtime.scala2_12
   def userScalaVersion = runtime.userScalaVersion
   def thin = runtime.thin

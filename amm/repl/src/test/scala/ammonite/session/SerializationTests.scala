@@ -35,7 +35,7 @@ object SerializationTests extends TestSuite{
 
       // -Ydelambdafy=inline seems to be required in 2.12 for serializing lambdas
 
-      check.session(
+      if (check.scala2) check.session(
         s"""
           @ interp.configureCompiler(_.settings.Ydelambdafy.value = "inline")
 
@@ -91,6 +91,7 @@ object SerializationTests extends TestSuite{
           @ }}
 
         """)
+      else "disabled"
     }
   }
 }

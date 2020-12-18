@@ -4,24 +4,10 @@ import ammonite.compiler.iface.Imports
 import ammonite.repl.api.{Colors, FrontEnd, History, ReplLoad, Session}
 import ammonite.util.{Colors => _, _}
 
-import scala.reflect.runtime.universe._
-
 import ammonite.repl.api.Clipboard
 import pprint.PPrinter
 
 trait ReplAPI extends Any {
-
-  /**
-   * Get the `Type` object of [[T]]. Useful for finding
-   * what its methods are and what you can do with it
-   */
-  def typeOf[T: WeakTypeTag]: Type
-  /**
-   * Get the `Type` object representing the type of `t`. Useful
-   * for finding what its methods are and what you can do with it
-   *
-   */
-  def typeOf[T: WeakTypeTag](t: => T): Type
 
   /**
    * Display help text if you don't know how to use the REPL
@@ -69,16 +55,6 @@ trait ReplAPI extends Any {
    */
   def frontEnd: FrontEnd
   def frontEnd_=(frontEnd: FrontEnd): Unit
-
-  /**
-   * Access the compiler to do crazy things if you really want to!
-   */
-  def compiler: scala.tools.nsc.Global
-
-  /**
-    * Access the presentation compiler to do even crazier things if you really want to!
-    */
-  def interactiveCompiler: scala.tools.nsc.interactive.Global
 
   def load: ReplLoad
 

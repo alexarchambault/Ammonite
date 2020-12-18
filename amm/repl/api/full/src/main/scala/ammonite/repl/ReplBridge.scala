@@ -3,10 +3,8 @@ package ammonite.repl
 import ammonite.compiler.iface.Imports
 import ammonite.interp.api.APIHolder
 import ammonite.repl.api.{History, ReplAPI, ReplLoad, Session}
-import ammonite.util.{Bind, _}
+import ammonite.util._
 import ammonite.util.Util.newLine
-
-import scala.reflect.runtime.universe._
 
 import scala.collection.mutable
 import scala.reflect.ClassTag
@@ -19,9 +17,6 @@ import java.io.PrintStream
 object ReplBridge extends APIHolder[ReplAPI]
 
 object ReplExtras {
-
-  def typeOf[T: WeakTypeTag] = scala.reflect.runtime.universe.weakTypeOf[T]
-  def typeOf[T: WeakTypeTag](t: => T) = scala.reflect.runtime.universe.weakTypeOf[T]
 
   def help =
     """Welcome to the Ammonite Scala REPL! Enter a Scala expression and it will be evaluated.
@@ -86,7 +81,7 @@ object ReplExtras {
       else None
 
     hookedPrintOpt.getOrElse {
-      defaultPrint[T](value, ident, custom)
+      defaultPrint[T](value, ident, custom)(implicitly[pprint.TPrint[T]], tcolors, api, classTagT)
     }
   }
   def defaultPrint[T: pprint.TPrint](value: => T,
@@ -154,13 +149,13 @@ object ReplExtras {
     Iterator(api.ammColors().`type`()("import ").render, api.ammColors().ident()(imported).render)
   }
 
-  implicit def pprinterImplicit(implicit api: ReplAPI) = api.pprinter()
+  implicit def pprinterImplicit(implicit api: ReplAPI): PPrinter = api.pprinter()
 
   /**
    * Controls how things are pretty-printed in the REPL. Feel free
    * to shadow this with your own definition to change how things look
    */
-  implicit def tprintColorsImplicit(implicit api: ReplAPI) = pprint.TPrintColors(
+  implicit def tprintColorsImplicit(implicit api: ReplAPI): pprint.TPrintColors = pprint.TPrintColors(
     typeColor = api.ammColors().`type`()
   )
   implicit def codeColorsImplicit(implicit api: ReplAPI): CodeColors = new CodeColors{
@@ -185,10 +180,8 @@ object ReplExtras {
   private lazy val bw = Colors.BlackWhite
   private lazy val default = Colors.Default
 
-  implicit class ReplAPIExtensions(private val api: ReplAPI)
-    extends AnyVal with ammonite.repl.api.doc.ReplAPI {
-    def typeOf[T: WeakTypeTag] = ReplExtras.typeOf[T]
-    def typeOf[T: WeakTypeTag](t: => T) = ReplExtras.typeOf[T](t)
+  implicit class ReplAPIExtensions(protected val api: ReplAPI)
+    extends AnyVal with ammonite.repl.api.doc.ReplAPI with ReplAPICompilerExtensions  {
     def help = ReplExtras.help
 
     def show(t: Any,
@@ -269,18 +262,6 @@ object ReplExtras {
       api.getFrontEnd
     def frontEnd_=(frontEnd: ammonite.repl.api.FrontEnd) =
       api.setFrontEnd(frontEnd)
-
-    /**
-     * Access the compiler to do crazy things if you really want to!
-     */
-    def compiler: scala.tools.nsc.Global =
-      api.objCompiler.asInstanceOf[scala.tools.nsc.Global]
-
-    /**
-      * Access the presentation compiler to do even crazier things if you really want to!
-      */
-    def interactiveCompiler: scala.tools.nsc.interactive.Global =
-      api.objPressy.asInstanceOf[scala.tools.nsc.interactive.Global]
 
     def load: ReplLoad =
       api.replLoad

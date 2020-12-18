@@ -27,7 +27,7 @@ object YRangeposTests extends TestSuite {
       val storage = Storage.InMemory()
       val interp = createTestInterp(
         storage,
-        predefImports = Interpreter.predefImports
+        predefImports = Interpreter.predefImports(scala.util.Properties.versionNumberString)
       )
       val res = Scripts.runScript(os.pwd, scriptFolderPath / "yRangepos.sc", interp)
       assert(res.isSuccess)

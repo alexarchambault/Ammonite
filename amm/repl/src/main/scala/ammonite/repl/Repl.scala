@@ -10,7 +10,6 @@ import ammonite.terminal.Filter
 import ammonite.util.InterfaceExtensions._
 import ammonite.util.Util.{newLine, normalizeNewlines}
 import ammonite.util._
-import ammonite.compiler.Parsers
 import ammonite.compiler.iface.{CodeWrapper, CompilerLifecycleManager, Imports, Parser}
 import ammonite.interp.Interpreter
 import coursierapi.Dependency
@@ -43,9 +42,9 @@ class Repl(compilerManager: CompilerLifecycleManager,
 
   val frontEnd = Ref[FrontEnd](
     if (scala.util.Properties.isWin)
-      ammonite.repl.FrontEnds.JLineWindows
+      new ammonite.repl.FrontEnds.JLineWindows(parser)
     else
-      AmmoniteFrontEnd(Filter.empty)
+      AmmoniteFrontEnd(parser, Filter.empty)
   )
 
   var lastException: Throwable = null
@@ -59,7 +58,7 @@ class Repl(compilerManager: CompilerLifecycleManager,
   val argString = replArgs.zipWithIndex.map{ case (b, idx) =>
     s"""
     val ${b.name} =
-      ammonite.repl.ReplBridge.value.replArgs($idx).value.asInstanceOf[${b.typeTag.tpe}]
+      ammonite.repl.ReplBridge.value.replArgs($idx).value.asInstanceOf[${b.typeString}]
     """
   }.mkString(newLine)
 
@@ -115,18 +114,18 @@ class Repl(compilerManager: CompilerLifecycleManager,
           repl.prompt = () => prompt.get()
         def getFrontEnd = repl.frontEnd() match {
           case _: AmmoniteFrontEnd => ammonite.repl.api.FrontEnd.Ammonite()
-          case FrontEnds.JLineWindows => ammonite.repl.api.FrontEnd.JLineWindows()
-          case FrontEnds.JLineUnix => ammonite.repl.api.FrontEnd.JLineUnix()
+          case _: FrontEnds.JLineWindows => ammonite.repl.api.FrontEnd.JLineWindows()
+          case _: FrontEnds.JLineUnix => ammonite.repl.api.FrontEnd.JLineUnix()
           case other => null // meh
         }
         def setFrontEnd(id: ammonite.repl.api.FrontEnd): Unit =
           id match {
             case _: ammonite.repl.api.FrontEnd.Ammonite =>
-              repl.frontEnd() = AmmoniteFrontEnd()
+              repl.frontEnd() = AmmoniteFrontEnd(parser)
             case _: ammonite.repl.api.FrontEnd.JLineWindows =>
-              repl.frontEnd() = FrontEnds.JLineWindows
+              repl.frontEnd() = new FrontEnds.JLineWindows(parser)
             case _: ammonite.repl.api.FrontEnd.JLineUnix =>
-              repl.frontEnd() = FrontEnds.JLineUnix
+              repl.frontEnd() = new FrontEnds.JLineUnix(parser)
             case _ =>
               repl.printer.warning(s"Unrecognized front end $id, ignoring it")
           }
@@ -179,7 +178,7 @@ class Repl(compilerManager: CompilerLifecycleManager,
     // running the user code directly. Could be made longer to better warm more
     // code paths, but then the fixed overhead gets larger so not really worth it
     val code = s"""val array = Seq.tabulate(10)(_*2).toArray.max"""
-    val stmts = Parsers.split(code).get.get.value
+    val stmts = parser.split(code).get.toOption.get
     interp.processLine(code, stmts, 9999999, silent = true, () => () /*donothing*/)
   }
 

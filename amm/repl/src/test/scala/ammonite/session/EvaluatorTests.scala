@@ -102,19 +102,35 @@ object EvaluatorTests extends TestSuite{
       """)
     }
     test("types"){
-      check.session(s"""
-        @ type Funky = Array[Array[String]]
-        defined type Funky
+      if (check.scala2_12)
+        check.session(s"""
+          @ type Funky = Array[Array[String]]
+          defined type Funky
 
-        @ val arr: Funky = Array(Array("Hello!"))
-        arr: Funky = Array(Array("Hello!"))
+          @ val arr: Funky = Array(Array("Hello!"))
+          arr: Funky = Array(Array("Hello!"))
 
-        @ type Funky2[T] = Array[Array[T]]
-        defined type Funky2
+          @ type Funky2[T] = Array[Array[T]]
+          defined type Funky2
 
-        @ val arr: Funky2[Int] = Array(Array(123))
-        arr: Funky2[Int] = Array(Array(123))
-      """)
+          @ val arr: Funky2[Int] = Array(Array(123))
+          arr: Funky2[Int] = Array(Array(123))
+        """)
+      else
+        // Scala 3 tprint issues?
+        check.session(s"""
+          @ type Funky = Array[Array[String]]
+          defined type Funky
+
+          @ val arr: Funky = Array(Array("Hello!"))
+          arr: Array[Array[String]] = Array(Array("Hello!"))
+
+          @ type Funky2[T] = Array[Array[T]]
+          defined type Funky2
+
+          @ val arr: Funky2[Int] = Array(Array(123))
+          arr: Array[Array[Int]] = Array(Array(123))
+        """)
     }
     test("library"){
       // x and y pprinted value is test("non") - empty iterator' up to 2.12.6,
@@ -132,6 +148,9 @@ object EvaluatorTests extends TestSuite{
     }
 
     test("classes"){
+      val coType =
+        if (check.scala2_12) "CO.type"
+        else "ammonite.$sess.cmd2.CO.type" // Scala 3 tprint issue?
       check.session(s"""
         @ class C{override def toString() = "Ceee"}
         defined class C
@@ -143,7 +162,7 @@ object EvaluatorTests extends TestSuite{
         defined object CO
 
         @ CO
-        res3: CO.type = CO
+        res3: $coType = CO
 
         @ case class CC()
         defined class CC
@@ -152,7 +171,7 @@ object EvaluatorTests extends TestSuite{
         res5: CC = CC()
 
         @ CO
-        res6: CO.type = CO
+        res6: $coType = CO
 
         @ case class CO()
         defined class CO
@@ -237,7 +256,7 @@ object EvaluatorTests extends TestSuite{
         res3_2: Int = 3
 
         @ C()
-        res4: C = C(0)
+        res4: C = C(i = 0)
       """)
     }
 

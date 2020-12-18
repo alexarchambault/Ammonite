@@ -9,8 +9,8 @@ import scala.collection.mutable
 object InterpBridge extends APIHolder[InterpAPI]
 
 object InterpExtras {
-  implicit class InterpAPIExtensions(private val api: InterpAPI)
-    extends AnyVal with ammonite.interp.api.doc.InterpAPI {
+  implicit class InterpAPIExtensions(protected val api: InterpAPI)
+    extends AnyVal with ammonite.interp.api.doc.InterpAPI with InterpAPICompilerExtensions {
 
     def watchValue[T](v: => T): T = {
       api.addWatchValue(() => v)
@@ -24,17 +24,6 @@ object InterpExtras {
 
     def beforeExitHooks: mutable.Buffer[java.util.function.Function[Object, Object]] =
       api.beforeExitHooksList.asScala
-
-    def configureCompiler(c: scala.tools.nsc.Global => Unit): Unit =
-      api
-        .objCompilerLifeCycleManager
-        .asInstanceOf[ammonite.compiler.CompilerLifecycleManager]
-        .configureCompiler(c)
-    def preConfigureCompiler(c: scala.tools.nsc.Settings => Unit): Unit =
-      api
-        .objCompilerLifeCycleManager
-        .asInstanceOf[ammonite.compiler.CompilerLifecycleManager]
-        .preConfigureCompiler(c)
   }
 
   implicit class ReplClassLoaderExtensions(private val cl: ReplClassLoader) extends AnyVal {

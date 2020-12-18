@@ -4,6 +4,12 @@ import java.util.Map;
 
 public abstract class Parser {
 
+  public abstract String[] trySplit(
+    String code,
+    boolean ignoreIncomplete,
+    String fileName
+  ) throws SplitException;
+
   public abstract ParsedImportHooks importHooks(
     CodeSource source,
     Map.Entry<Integer, String>[] statements
@@ -18,6 +24,26 @@ public abstract class Parser {
     String rawCode,
     String fileName
   ) throws ScriptSplittingError; // Either[Parsed.Failure, IndexedSeq[(Int, String, Seq[(Int, String)])]]
+
+  public abstract String defaultHighlight(
+    char[] buffer,
+    long commentReset,
+    long commentApply,
+    long typeReset,
+    long typeApply,
+    long literalReset,
+    long literalApply,
+    long keywordReset,
+    long keywordApply,
+    long resetReset,
+    long resetApply
+  );
+
+  public static class SplitException extends Exception {
+    public SplitException(String message) {
+      super(message);
+    }
+  }
 
   public static final class ParsedImportHooks {
     private final String[] hookStatements;

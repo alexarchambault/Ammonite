@@ -25,6 +25,7 @@ import ammonite.runtime.ImportHook
 final case class TestReplRuntime(
   classPathWhitelist: Set[Seq[String]],
   initialClassLoader: ClassLoader,
+  intermediateClassLoader: ClassLoader,
   sharedFrame: Frame,
   userScalaVersion: String,
   thin: Boolean
@@ -32,6 +33,7 @@ final case class TestReplRuntime(
   def initialFrame(): Frame =
     Frame.childFrame(sharedFrame)
 
+  def scala2 = userScalaVersion.startsWith("2.")
   def scala2_12 = userScalaVersion.startsWith("2.12.")
 }
 
@@ -77,6 +79,7 @@ object TestRepl {
     TestReplRuntime(
       classPathWhitelist,
       initialClassLoader,
+      intermediateLoader,
       sharedFrame,
       sv,
       crossScalaVersionEnabled
@@ -92,6 +95,8 @@ object TestRepl {
  */
 class TestRepl(runtime: TestReplRuntime = TestRepl.runtime()) {
 
+  def scala2 = runtime.scala2
+
   var allOutput = ""
   def predef: (String, Option[os.Path]) = ("", None)
   def codeWrapper: CodeWrapper = ObjectCodeWrapper
@@ -99,13 +104,6 @@ class TestRepl(runtime: TestReplRuntime = TestRepl.runtime()) {
   val tempDir = os.Path(
     java.nio.file.Files.createTempDirectory("ammonite-tester")
   )
-
-  val crossScalaVersionEnabled =
-    try {
-      Thread.currentThread().getContextClassLoader.loadClass("ammonite.repl.CrossTests")
-      true
-    }
-    catch { case _: ClassNotFoundException => false }
 
 
   import java.io.ByteArrayOutputStream
@@ -135,17 +133,18 @@ class TestRepl(runtime: TestReplRuntime = TestRepl.runtime()) {
   val frames = Ref(List(initialFrame))
   val sess0 = new SessionApiImpl(frames)
 
-  val baseImports = ammonite.main.Defaults.replImports ++ Interpreter.predefImports
+  val baseImports = ammonite.main.Defaults.replImports(runtime.userScalaVersion) ++
+    Interpreter.predefImports(runtime.userScalaVersion)
   val basePredefs = Seq(
     PredefInfo(Name("testPredef"), predef._1, false, predef._2)
   )
   val customPredefs = Seq()
 
   val compilerLifecycleManager =
-    if (crossScalaVersionEnabled) Interpreter.compilerLifecycleManager(initialFrame.classloader)
+    if (TestRepl.crossScalaVersionEnabled) Interpreter.compilerLifecycleManager(initialFrame.classloader)
     else new CompilerLifecycleManager
   val parser =
-    if (crossScalaVersionEnabled) Interpreter.parser(initialFrame.classloader)
+    if (TestRepl.crossScalaVersionEnabled) Interpreter.parser(initialFrame.classloader)
     else ammonite.compiler.Parsers
 
   var currentLine = 0
@@ -284,7 +283,7 @@ class TestRepl(runtime: TestReplRuntime = TestRepl.runtime()) {
       // ...except for the empty 0-line fragment, and the entire fragment,
       // both of which are complete.
       for (incomplete <- commandText.inits.toSeq.drop(1).dropRight(1)){
-        assert(ammonite.compiler.Parsers.split(incomplete.mkString(Util.newLine)).isEmpty)
+        assert(parser.split(incomplete.mkString(Util.newLine)).isEmpty)
       }
 
       // Finally, actually run the complete command text through the
@@ -389,7 +388,7 @@ class TestRepl(runtime: TestReplRuntime = TestRepl.runtime()) {
     warningBuffer.clear()
     errorBuffer.clear()
     infoBuffer.clear()
-    val splitted = ammonite.compiler.Parsers.split(input).get.get.value
+    val splitted = parser.split(input).get.toOption.get
     val processed = interp.processLine(
       input,
       splitted,

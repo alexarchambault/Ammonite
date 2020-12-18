@@ -22,7 +22,7 @@ object Clipboard {
   class Writable(val writeableData: geny.Generator[Array[Byte]])
 
   object Writable extends LowPri{
-    implicit def WritableString(s: String) = new Writable(
+    implicit def WritableString(s: String): Writable = new Writable(
       geny.Generator(s.getBytes(java.nio.charset.StandardCharsets.UTF_8))
     )
     implicit def WritableBytes(a: Array[Byte]): Writable = new Writable(geny.Generator(a))
@@ -32,7 +32,7 @@ object Clipboard {
 
     implicit def WritableGenerator[M[_], T](a: M[T])
                                            (implicit f: T => Writable,
-                                            i: M[T] => geny.Generator[T]) = {
+                                            i: M[T] => geny.Generator[T]): Writable = {
       new Writable(
         i(a).flatMap(f(_).writeableData)
       )

@@ -181,6 +181,18 @@ object InterfaceExtensions {
     )
 
   implicit class ParserExtensions(private val parser: Parser) extends AnyVal {
+    def split(code: String, fileName: String = "(console)"): Option[Either[String, Seq[String]]] =
+      try Option(parser.trySplit(code, true, fileName)).map(Right(_))
+      catch {
+        case e: Parser.SplitException =>
+          Some(Left(e.getMessage))
+      }
+    def splitNoIncomplete(code: String, fileName: String = "(console)"): Either[String, Seq[String]] =
+      try Right(parser.trySplit(code, false, fileName))
+      catch {
+        case e: Parser.SplitException =>
+          Left(e.getMessage)
+      }
     def parseImportHooks(source: CodeSource, stmts: Seq[String]): (Seq[String], Seq[ImportTree]) = {
       val statementsWithIndices = stmts.map { s =>
         entry(0: Integer, s)

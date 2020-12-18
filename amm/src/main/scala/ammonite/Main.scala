@@ -1,6 +1,6 @@
 package ammonite
 
-import java.io.{InputStream, OutputStream, PrintStream}
+import java.io.{File, InputStream, OutputStream, PrintStream}
 import java.net.URLClassLoader
 import java.nio.file.NoSuchFileException
 
@@ -109,27 +109,42 @@ case class Main(predefCode: String = "",
         sys.exit(1)
       }
     }
-  }
+  }.orElse(sys.props.get("amm.scala-version"))
 
   lazy val extraCp: Array[java.net.URL] = fullScalaVersionOpt match {
     case None => Array.empty
     case Some(sv) =>
-      import coursierapi._
-      import scala.collection.JavaConverters._
-      // FIXME We should allow users to use custom repositories here.
-      val files = Fetch.create()
-        .withMainArtifacts()
-        .addClassifiers("sources")
-        .addDependencies(
-          Dependency.of("com.lihaoyi", "ammonite-repl-api-full_" + sv, ammonite.Constants.version),
-          Dependency.of("com.lihaoyi", "ammonite-compiler_" + sv, ammonite.Constants.version)
-        )
-        .fetch()
-      files
-        .iterator()
-        .asScala
-        .map(_.toURI.toURL)
-        .toArray
+
+      def fetch() = {
+        import coursierapi._
+        import scala.collection.JavaConverters._
+        // FIXME We should allow users to use custom repositories here.
+        val files = Fetch.create()
+          .withMainArtifacts()
+          .addClassifiers("sources")
+          .addDependencies(
+            Dependency.of("com.lihaoyi", "ammonite-repl-api-full_" + sv, ammonite.Constants.version),
+            Dependency.of("com.lihaoyi", "ammonite-compiler_" + sv, ammonite.Constants.version)
+          )
+          .fetch()
+        files
+          .iterator()
+          .asScala
+          .map(_.toURI.toURL)
+          .toArray
+      }
+
+      sys.props.get("amm.scala-version") match {
+        case None => fetch()
+        case Some(devModeVersion) =>
+          sys.props.get("amm.side-jars") match {
+            case None => sys.error("amm.scala-version is set but amm.side-jars is not")
+            case Some(extraJarsValue) =>
+              extraJarsValue
+                .split(File.pathSeparator)
+                .map(os.Path(_).toNIO.toUri.toURL)
+          }
+      }
   }
 
   def finalWelcomeBanner = welcomeBanner.map { banner =>
@@ -152,8 +167,10 @@ case class Main(predefCode: String = "",
 
     loadedPredefFile.right.map{ predefFileInfoOpt =>
       val augmentedImports =
-        if (defaultPredef) Defaults.replImports ++ Interpreter.predefImports
-        else Imports()
+        if (defaultPredef) {
+          val sv = fullScalaVersionOpt.getOrElse(scala.util.Properties.versionNumberString)
+          Defaults.replImports(sv) ++ Interpreter.predefImports(sv)
+        } else Imports()
 
       val argString = replArgs.zipWithIndex.map{ case (b, idx) =>
         s"""
@@ -162,7 +179,7 @@ case class Main(predefCode: String = "",
           .ReplBridge
           .value
           .replArgs($idx)
-          .asInstanceOf[${b.typeTag.tpe}]
+          .asInstanceOf[${b.typeString}]
         """
       }.mkString(newLine)
 
@@ -208,8 +225,10 @@ case class Main(predefCode: String = "",
   def instantiateInterpreter() = {
     loadedPredefFile.right.flatMap { predefFileInfoOpt =>
       val augmentedImports =
-        if (defaultPredef) Interpreter.predefImports
-        else Imports()
+        if (defaultPredef) {
+          val sv = fullScalaVersionOpt.getOrElse(scala.util.Properties.versionNumberString)
+          Interpreter.predefImports(sv)
+        } else Imports()
 
       val colors = Ref[ammonite.repl.api.Colors](initialColors match {
         case "b&w" => ammonite.repl.api.Colors.BLACKWHITE
@@ -356,14 +375,15 @@ object Main{
         false
       case Right(cliConfig) =>
         if (cliConfig.core.bsp.value) {
+          val compilerBuilder = defaultCompilerBuilder()
           val buildServer = new AmmoniteBuildServer(
-            defaultCompilerBuilder(),
+            compilerBuilder,
             defaultParser(),
             ObjectCodeWrapper,
             initialScripts = cliConfig.rest.map(os.Path(_)),
             initialImports = PredefInitialization.initBridges(
               Seq("ammonite.interp.api.InterpBridge" -> "interp")
-            ) ++ AmmoniteBuildServer.defaultImports
+            ) ++ Interpreter.predefImports(compilerBuilder.userScalaVersion)
           )
           val launcher = AmmoniteBuildServer.start(buildServer)
           printErr.println("Starting BSP server")

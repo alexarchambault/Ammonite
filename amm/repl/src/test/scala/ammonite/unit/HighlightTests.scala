@@ -1,23 +1,33 @@
 package ammonite.unit
 
+import ammonite.TestRepl
+import ammonite.interp.Interpreter
 import ammonite.repl.Highlighter
 import utest._
 
 object HighlightTests extends TestSuite{
 
-  def testHighlight(buffer: Vector[Char]) = Highlighter.defaultHighlight(
+  val parser =
+    if (TestRepl.crossScalaVersionEnabled) Interpreter.parser(TestRepl.sharedRuntime.initialFrame().classloader)
+    else ammonite.compiler.Parsers
+
+  def testHighlight(buffer: Array[Char]) = parser.defaultHighlight(
     buffer,
-    fansi.Color.Blue,
-    fansi.Color.Green,
-    fansi.Color.Green,
-    fansi.Color.Yellow,
-    fansi.Attr.Reset
+    fansi.Color.Blue.resetMask,
+    fansi.Color.Blue.applyMask,
+    fansi.Color.Green.resetMask,
+    fansi.Color.Green.applyMask,
+    fansi.Color.Green.resetMask,
+    fansi.Color.Green.applyMask,
+    fansi.Color.Yellow.resetMask,
+    fansi.Color.Yellow.applyMask,
+    fansi.Attr.Reset.resetMask,
+    fansi.Attr.Reset.applyMask
   )
 
   def check(source: String, expected: String) = {
     val highlighted =
-      testHighlight(source.toVector)
-        .mkString
+      testHighlight(source.toCharArray)
         .replace(fansi.Color.Blue.escape, "<B|")
         .replace(fansi.Color.Green.escape, "<G|")
         .replace(fansi.Color.Yellow.escape, "<Y|")
@@ -33,14 +43,19 @@ object HighlightTests extends TestSuite{
         val paths = os.walk(os.pwd).filter(_.ext == "scala")
         for(path <- paths){
           val code = os.read(path)
-          val out = Highlighter.defaultHighlight(
-            code.toVector,
-            fansi.Underlined.On,
-            fansi.Underlined.On,
-            fansi.Underlined.On,
-            fansi.Underlined.On,
-            fansi.Attr.Reset
-          ).mkString
+          val out = parser.defaultHighlight(
+            code.toCharArray,
+            fansi.Underlined.On.resetMask,
+            fansi.Underlined.On.applyMask,
+            fansi.Underlined.On.resetMask,
+            fansi.Underlined.On.applyMask,
+            fansi.Underlined.On.resetMask,
+            fansi.Underlined.On.applyMask,
+            fansi.Underlined.On.resetMask,
+            fansi.Underlined.On.applyMask,
+            fansi.Attr.Reset.resetMask,
+            fansi.Attr.Reset.applyMask
+          )
             .replace(fansi.Underlined.On.escape, "")
             .replace(fansi.Underlined.Off.escape, "")
           val outLength = out.length

@@ -59,7 +59,7 @@ object Config{
     help: Flag
   ) {
     def classLoaderIsolation: Boolean =
-      thin.value || scala.nonEmpty
+      thin.value || scala.nonEmpty || sys.props.get("amm.scala-version").nonEmpty
   }
   implicit val coreParser = ParserForClass[Core]
 

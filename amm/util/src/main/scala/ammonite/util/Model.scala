@@ -9,7 +9,6 @@ import java.io.PrintStream
 
 
 import scala.reflect.NameTransformer
-import scala.reflect.runtime.universe.TypeTag
 
 
 /**
@@ -222,17 +221,6 @@ object Colors{
   )
 }
 
-/**
- * Models a binding of a value to a typed name, and is passed into the
- * REPL so it can re-create the bindings inside the REPL's scope
- */
-case class Bind[T](name: String, value: T)
-                  (implicit val typeTag: scala.reflect.runtime.universe.TypeTag[T])
-object Bind{
-  implicit def ammoniteReplArrowBinder[T](t: (String, T))(implicit typeTag: TypeTag[T]) = {
-    Bind(t._1, t._2)(typeTag)
-  }
-}
 /**
   * Encapsulates the ways the Ammonite REPL prints things. Does not print
   * a trailing newline by default; you have to add one yourself.

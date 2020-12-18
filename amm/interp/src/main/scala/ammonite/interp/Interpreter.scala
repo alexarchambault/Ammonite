@@ -126,7 +126,7 @@ class Interpreter(val compilerManager: CompilerLifecycleManager,
     // running, so you can use them predef to e.g. configure
     // the REPL before it starts
     extraBridges: Seq[(String, String, AnyRef)],
-    baseImports: Imports = Interpreter.predefImports
+    baseImports: Imports = Interpreter.predefImports(compilerManager.userScalaVersion)
   ): Option[(Res.Failing, Seq[(Watchable, Long)])] = {
 
     headFrame.classloader.specialLocalClasses ++= Seq(
@@ -728,22 +728,29 @@ class Interpreter(val compilerManager: CompilerLifecycleManager,
 
 object Interpreter{
 
-  val predefImports = ammonite.util.Imports(
-    ImportData("ammonite.interp.api.InterpExtras.exit"),
-    ImportData("ammonite.interp.api.InterpExtras.{InterpAPIExtensions, ReplClassLoaderExtensions}"),
-    ImportData(
-      "ammonite.interp.api.IvyConstructor.{ArtifactIdExt, GroupIdExt}",
-      importType = ImportData.Type
-    ),
-    ImportData("ammonite.util.InterfaceExtensions.ImportsExtensions"),
-    ImportData("ammonite.repl.api.FrontEnd"),
-    ImportData("ammonite.repl.api.Colors"),
-    ImportData("ammonite.runtime.tools.{browse, grep, time}"),
-    ImportData("ammonite.runtime.tools.tail", importType = ImportData.TermType),
-    ImportData("ammonite.repl.tools.{desugar, source}"),
-    ImportData("mainargs.{arg, main}"),
-    ImportData("ammonite.repl.tools.Util.PathRead")
-  )
+  def predefImports(sv: String) = {
+    def scala2Imports = ammonite.util.Imports(
+      ImportData("ammonite.runtime.tools.{browse, grep, time}"),
+      ImportData("ammonite.runtime.tools.tail", importType = ImportData.TermType),
+      ImportData("ammonite.repl.tools.{desugar, source}"),
+      ImportData("mainargs.{arg, main}"),
+      ImportData("ammonite.repl.tools.Util.PathRead")
+    )
+    val mainImports = ammonite.util.Imports(
+      ImportData("ammonite.interp.api.InterpExtras.exit"),
+      ImportData("ammonite.interp.api.InterpExtras.{InterpAPIExtensions, ReplClassLoaderExtensions}"),
+      ImportData(
+        "ammonite.interp.api.IvyConstructor.{ArtifactIdExt, GroupIdExt}",
+        importType = ImportData.Type
+      ),
+      ImportData("ammonite.util.InterfaceExtensions.ImportsExtensions"),
+      ImportData("ammonite.repl.api.FrontEnd"),
+      ImportData("ammonite.repl.api.Colors")
+    )
+
+    if (sv.startsWith("2.")) mainImports ++ scala2Imports
+    else mainImports
+  }
 
 
 

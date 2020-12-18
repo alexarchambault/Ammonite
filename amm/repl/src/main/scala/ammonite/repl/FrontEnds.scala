@@ -11,21 +11,21 @@ import org.jline.reader.impl.history.DefaultHistory
 import org.jline.terminal._
 import org.jline.utils.AttributedString
 import ammonite.util.{Catching, Colors, Res}
-import ammonite.compiler.Parsers
+import ammonite.util.InterfaceExtensions._
 import org.jline.reader.impl.DefaultParser
 
 
 object FrontEnds {
-  object JLineUnix extends JLineTerm
-  object JLineWindows extends JLineTerm
-  class JLineTerm() extends FrontEnd {
+  class JLineUnix(codeParser: ammonite.compiler.iface.Parser) extends JLineTerm(codeParser)
+  class JLineWindows(codeParser: ammonite.compiler.iface.Parser) extends JLineTerm(codeParser)
+  class JLineTerm(codeParser: ammonite.compiler.iface.Parser) extends FrontEnd {
 
     private val term = TerminalBuilder.builder().build()
-    
+
     private val readerBuilder = LineReaderBuilder.builder().terminal(term)
-    private val ammHighlighter = new AmmHighlighter()
+    private val ammHighlighter = new AmmHighlighter(codeParser)
     private val ammCompleter = new AmmCompleter(ammHighlighter)
-    private val ammParser = new AmmParser()
+    private val ammParser = new AmmParser(codeParser)
     readerBuilder.highlighter(ammHighlighter)
     readerBuilder.completer(ammCompleter)
     readerBuilder.parser(ammParser)
@@ -78,6 +78,9 @@ object FrontEnds {
       } yield res
     }
   }
+
+  def width = TerminalBuilder.builder().build().getWidth
+  def height = TerminalBuilder.builder().build().getHeight
 }
 
 class AmmCompleter(highlighter: org.jline.reader.Highlighter) extends Completer {
@@ -124,7 +127,7 @@ class AmmCompleter(highlighter: org.jline.reader.Highlighter) extends Completer 
   }
 }
 
-class AmmParser extends Parser {
+class AmmParser(codeParser: ammonite.compiler.iface.Parser) extends Parser {
   class AmmoniteParsedLine(line: String, words: java.util.List[String],
                             wordIndex: Int, wordCursor: Int, cursor: Int,
                             val stmts: Seq[String] = Seq.empty // needed for interpreter
@@ -141,9 +144,9 @@ class AmmParser extends Parser {
     val words = defParLine.words
     val wordIndex = defParLine.wordIndex // index of the current word in the list of words
     val wordCursor = defParLine.wordCursor // cursor position within the current word
-    
-    Parsers.split(line) match {
-      case Some(Parsed.Success(stmts, idx)) =>
+
+    codeParser.split(line) match {
+      case Some(Right(stmts)) =>
         addHistory(line)
         // if ENTER and not at the end of input -> newline
         if (context == Parser.ParseContext.ACCEPT_LINE && cursor != line.length) {
@@ -151,14 +154,12 @@ class AmmParser extends Parser {
         } else {
           new AmmoniteParsedLine(line, words, wordIndex, wordCursor, cursor, stmts)
         }
-      case Some(f @ Parsed.Failure(p, idx, extra)) =>
+      case Some(Left(error)) =>
         // we "accept the failure" only when ENTER is pressed, loops forever otherwise...
         // https://groups.google.com/d/msg/jline-users/84fPur0oHKQ/bRnjOJM4BAAJ
         if (context == Parser.ParseContext.ACCEPT_LINE) {
           addHistory(line)
-          throw new SyntaxError(
-            ammonite.compiler.Parsers.formatFastparseError("(console)", line, f)
-          )
+          throw new SyntaxError(error)
         } else {
           new AmmoniteParsedLine(line, words, wordIndex, wordCursor, cursor)
         }
@@ -176,19 +177,24 @@ class AmmParser extends Parser {
 
 class SyntaxError(val msg: String) extends RuntimeException
 
-class AmmHighlighter extends org.jline.reader.Highlighter {
+class AmmHighlighter(codeParser: ammonite.compiler.iface.Parser) extends org.jline.reader.Highlighter {
 
   var colors: Colors = Colors.Default
   def setErrorIndex(x$1: Int): Unit = ()
   def setErrorPattern(x$1: java.util.regex.Pattern): Unit = ()
   override def highlight(reader: LineReader, buffer: String): AttributedString = {
-    val hl = Highlighter.defaultHighlight(
-      buffer.toVector,
-      colors.comment(),
-      colors.`type`(),
-      colors.literal(),
-      colors.keyword(),
-      fansi.Attr.Reset
+    val hl = codeParser.defaultHighlight(
+      buffer.toCharArray,
+      colors.comment().resetMask,
+      colors.comment().applyMask,
+      colors.`type`().resetMask,
+      colors.`type`().applyMask,
+      colors.literal().resetMask,
+      colors.literal().applyMask,
+      colors.keyword().resetMask,
+      colors.keyword().applyMask,
+      fansi.Attr.Reset.resetMask,
+      fansi.Attr.Reset.applyMask
     ).mkString
     AttributedString.fromAnsi(hl)
   }

@@ -26,8 +26,8 @@ class AmmoniteBuildServer(
   compilerBuilder: CompilerBuilder,
   parser: Parser,
   codeWrapper: CodeWrapper,
+  initialImports: Imports,
   initialScripts: Seq[os.Path] = Nil,
-  initialImports: Imports = AmmoniteBuildServer.defaultImports,
   defaultRepositories: Seq[Repository] = Repository.defaults().asScala.toList,
   importHooks: Map[Seq[String], ImportHook] = ImportHook.defaults
 ) extends BuildServer with ScalaBuildServer with DummyBuildServerImplems {
@@ -462,9 +462,6 @@ class AmmoniteBuildServer(
 }
 
 object AmmoniteBuildServer {
-
-  def defaultImports: Imports =
-    ammonite.interp.Interpreter.predefImports
 
   private def buildTargetIdentifier(p: os.Path): BuildTargetIdentifier =
     new BuildTargetIdentifier(p.toNIO.toAbsolutePath.toUri.toASCIIString)

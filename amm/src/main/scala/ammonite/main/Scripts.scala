@@ -35,17 +35,19 @@ object Scripts {
         // does not see the annotations on the methods of the outer-wrapper.
         // It can inspect the type and its methods fine, it's just the
         // `methodsymbol.annotations` ends up being empty.
-        extraCode = Util.normalizeNewlines(
-          s"""
-          |val $$routesOuter = this
-          |object $$routes
-          |extends $parent{
-          |  def get() = mainargs.ParserForMethods[$$routesOuter.type]($$routesOuter)
-          |}
-          """.stripMargin
-        ),
-        hardcoded = true
-      )
+        extraCode =
+          if (interp.userScalaVersion.startsWith("3."))
+            "object $routes extends _root_.java.util.function.Supplier[_root_.java.lang.Object] { def get() = null }"
+          else Util.normalizeNewlines(
+            s"""
+            |val $$routesOuter = this
+            |object $$routes extends $parent{
+            |  def get() = mainargs.ParserForMethods[$$routesOuter.type]($$routesOuter)
+            |}
+            """.stripMargin
+          ),
+          hardcoded = true
+          )
 
       routeClsName <- processed.blockInfo.lastOption match{
         case Some(meta) => Res.Success(meta.id.wrapperPath)

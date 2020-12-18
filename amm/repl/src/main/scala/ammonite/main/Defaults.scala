@@ -4,6 +4,7 @@ package ammonite.main
 import java.io.InputStream
 
 import ammonite.util.{ImportData, Imports, Util}
+import ammonite.util.InterfaceExtensions._
 import coursierapi.Dependency
 
 import scala.io.Codec
@@ -22,17 +23,27 @@ object Defaults{
     )
   }
 
-  val replImports = Imports(
-    ImportData("""ammonite.repl.ReplExtras.{
-      ReplAPIExtensions,
-      SessionChangedExtensions,
-      codeColorsImplicit,
-      pprinterImplicit,
-      show,
-      tprintColorsImplicit,
-      typeOf
-    }""")
-  )
+  def replImports(sv: String) = {
+    val scala2ReplImports = Imports(
+      // FIXME Add this back
+
+      // ImportData("ammonite.repl.ReplExtras.typeOf")
+    )
+    val sharedImports = Imports(
+      ImportData("""ammonite.repl.ReplExtras.{
+        ReplAPIExtensions,
+        SessionChangedExtensions,
+        codeColorsImplicit,
+        pprinterImplicit,
+        show,
+        tprintColorsImplicit
+      }""")
+    )
+    if (sv.startsWith("2."))
+      sharedImports ++ scala2ReplImports
+    else
+      sharedImports
+  }
   def ammoniteHome = os.Path(System.getProperty("user.home"))/".ammonite"
 
   def alreadyLoadedDependencies(

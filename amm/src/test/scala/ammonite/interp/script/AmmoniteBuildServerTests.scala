@@ -664,6 +664,7 @@ object AmmoniteBuildServerTests extends TestSuite {
       ammonite.compiler.Compiler,
       ammonite.compiler.Parsers,
       ammonite.compiler.ObjectCodeWrapper,
+      ammonite.interp.Interpreter.predefImports(scala.util.Properties.versionNumberString),
       initialScripts = script
     )
 

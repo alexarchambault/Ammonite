@@ -67,7 +67,7 @@ object CachingTests extends TestSuite{
 
         val interp1 = createTestInterp(
           storage,
-          predefImports = Interpreter.predefImports
+          predefImports = Interpreter.predefImports(scala.util.Properties.versionNumberString)
         )
 
         runScript(os.pwd, resourcesPath/script, interp1)
@@ -75,7 +75,7 @@ object CachingTests extends TestSuite{
         assert(interp1.compilerManager.compiler != null)
         val interp2 = createTestInterp(
           storage,
-          predefImports = Interpreter.predefImports
+          predefImports = Interpreter.predefImports(scala.util.Properties.versionNumberString)
         )
         assert(interp2.compilerManager.compiler == null)
 
@@ -102,7 +102,7 @@ object CachingTests extends TestSuite{
       os.write(numFile, "1", createFolders = true)
       val interp1 = createTestInterp(
         storage,
-        predefImports = Interpreter.predefImports
+        predefImports = Interpreter.predefImports(scala.util.Properties.versionNumberString)
       )
 
       runScript(
@@ -113,7 +113,7 @@ object CachingTests extends TestSuite{
 
       val interp2 = createTestInterp(
         storage,
-        predefImports = Interpreter.predefImports
+        predefImports = Interpreter.predefImports(scala.util.Properties.versionNumberString)
       )
       val Res.Exception(ex, _) = Scripts.runScript(
         os.pwd,
@@ -161,7 +161,7 @@ object CachingTests extends TestSuite{
 
       val interp1 = createTestInterp(
         new Storage.Folder(tempDir),
-        predefImports = Interpreter.predefImports
+        predefImports = Interpreter.predefImports(scala.util.Properties.versionNumberString)
       )
       val interp2 = createTestInterp(new Storage.Folder(tempDir))
 
@@ -190,7 +190,7 @@ object CachingTests extends TestSuite{
           new Storage.Folder(tempDir){
             override val predef = predefFile
           },
-          predefImports = Interpreter.predefImports
+          predefImports = Interpreter.predefImports(scala.util.Properties.versionNumberString)
         )
         runScript(os.pwd, scriptFile, interp)
         assert(f(interp.compilerManager.compiler))
