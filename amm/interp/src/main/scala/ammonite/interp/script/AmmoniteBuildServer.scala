@@ -72,6 +72,7 @@ class AmmoniteBuildServer(
           sv0
       }
       ScriptProcessor(
+        compilerBuilder.scalaVersion,
         parser,
         codeWrapper,
         dependencyLoader,
