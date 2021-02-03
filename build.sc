@@ -414,6 +414,8 @@ object amm extends Cross[MainModule](fullCrossScalaVersions:_*){
         transitiveJars() ++
         transitiveSourceJars()
     }
+
+    object test extends Tests
   }
 
   object interp extends Cross[InterpModule](fullCrossScalaVersions:_*){
@@ -637,7 +639,7 @@ class MainModule(val crossScalaVersion: String)
   }
 
   object test extends Tests{
-    def moduleDeps = super.moduleDeps ++ Seq(amm.repl().test)
+    def moduleDeps = super.moduleDeps ++ Seq(amm.compiler().test, amm.repl().test)
     def ivyDeps = super.ivyDeps() ++ Agg(
       Deps.shapeless.maybeBinScala(scalaVersion()),
       Deps.scalaJava8Compat.maybeBinScala(scalaVersion())
