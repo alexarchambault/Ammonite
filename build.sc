@@ -47,6 +47,15 @@ def withDottyCompat(dep: Dep, scalaVersion: String): Dep =
       dep.copy(cross = CrossVersion.Constant(value = compatSuffix, platformed = dep.cross.platformed))
     case _ => dep
   }
+implicit class DepOps(private val dep: Dep) {
+  def maybeBinScala(scalaVersion: String): Dep =
+    dep.cross match {
+      case cross: CrossVersion.Binary if scalaVersion.contains("-bin-") =>
+        val compatSuffix = "_" + scalaVersion.split('.').take(2).mkString(".")
+        dep.copy(cross = CrossVersion.Constant(value = compatSuffix, platformed = dep.cross.platformed))
+      case _ => dep
+    }
+}
 
 val scala2_12Versions = Seq("2.12.1", "2.12.2", "2.12.3", "2.12.4", "2.12.6", "2.12.7", "2.12.8", "2.12.9", "2.12.10", "2.12.11", "2.12.12", "2.12.13")
 val scala2_13Versions = Seq("2.13.0", "2.13.1", "2.13.2", "2.13.3", "2.13.4", "2.13.5")
@@ -139,6 +148,27 @@ trait CrossSbtModule extends mill.scalalib.SbtModule with mill.scalalib.CrossMod
   }
 }
 
+
+object CustomZincWorkerModule extends ZincWorkerModule with CoursierModule {
+  def repositories() = super.repositories ++ Seq(
+    mvn"https://scala-ci.typesafe.com/artifactory/scala-integration"
+  )
+  def scalaCompilerBridgeJar(
+    scalaVersion: String,
+    scalaOrganization: String,
+    repositories: Seq[coursier.Repository]
+  ) = {
+    val bridgeScalaVersion =
+      if (scalaVersion.contains("-bin-")) scalaVersion.takeWhile(_ != '-')
+      else scalaVersion
+    super.scalaCompilerBridgeJar(
+      bridgeScalaVersion,
+      scalaOrganization,
+      repositories
+    )
+  }
+}
+
 trait AmmInternalModule extends CrossSbtModule{
   def useCrossPrefix = T{
     crossScalaVersion == scala3 && scalaVersion() != scala3
@@ -165,15 +195,15 @@ trait AmmInternalModule extends CrossSbtModule{
     acyclicOptions ++ tastyReaderOptions
   }
   def compileIvyDeps = T {
-    if (isScala2()) Agg(Deps.acyclic)
+    if (isScala2()) Agg(Deps.acyclic.maybeBinScala(scalaVersion()))
     else Agg[Dep]()
   }
   def scalacPluginIvyDeps = T {
-    if (isScala2()) Agg(Deps.acyclic)
+    if (isScala2()) Agg(Deps.acyclic.maybeBinScala(scalaVersion()))
     else Agg[Dep]()
   }
   trait Tests extends super.Tests{
-    def ivyDeps = Agg(withDottyCompat(Deps.utest, scalaVersion()))
+    def ivyDeps = Agg(withDottyCompat(Deps.utest, scalaVersion()).maybeBinScala(scalaVersion()))
     def testFrameworks = Seq("utest.runner.Framework")
     def forkArgs = Seq("-Xmx2g", "-Dfile.encoding=UTF8")
   }
@@ -226,6 +256,7 @@ trait AmmInternalModule extends CrossSbtModule{
   def repositories = super.repositories ++ Seq(
     mvn"https://scala-ci.typesafe.com/artifactory/scala-integration"
   )
+  def zincWorker = CustomZincWorkerModule
 }
 trait AmmModule extends AmmInternalModule with PublishModule{
   def publishVersion = buildVersion
@@ -279,8 +310,8 @@ trait AmmDependenciesResourceFileModule extends JavaModule{
 object ops extends Cross[OpsModule](binCrossScalaVersions:_*)
 class OpsModule(val crossScalaVersion: String) extends AmmModule{
   def ivyDeps = Agg(
-    withDottyCompat(Deps.osLib, scalaVersion()),
-    withDottyCompat(Deps.scalaCollectionCompat, scalaVersion())
+    withDottyCompat(Deps.osLib, scalaVersion()).maybeBinScala(scalaVersion()),
+    withDottyCompat(Deps.scalaCollectionCompat, scalaVersion()).maybeBinScala(scalaVersion())
   )
   def scalacOptions = super.scalacOptions().filter(!_.contains("acyclic"))
   object test extends Tests
@@ -298,7 +329,7 @@ class TerminalModule(val crossScalaVersion: String) extends AmmModule{
       else
         Agg(Deps.fansi)
     fansi ++ Agg(
-      withDottyCompat(Deps.sourcecode, scalaVersion())
+      withDottyCompat(Deps.sourcecode, scalaVersion()).maybeBinScala(scalaVersion())
     )
   }
   def compileIvyDeps = Agg(
@@ -335,9 +366,9 @@ object amm extends Cross[MainModule](fullCrossScalaVersions:_*){
     def moduleDeps = Seq(ops(), amm.util(), interp.api(), amm.repl.api())
     def crossFullScalaVersion = true
     def ivyDeps = Agg(
-      withDottyCompat(Deps.upickle, scalaVersion()),
-      withDottyCompat(Deps.requests, scalaVersion()),
-      withDottyCompat(Deps.mainargs, scalaVersion())
+      withDottyCompat(Deps.upickle, scalaVersion()).maybeBinScala(scalaVersion()),
+      withDottyCompat(Deps.requests, scalaVersion()).maybeBinScala(scalaVersion()),
+      withDottyCompat(Deps.mainargs, scalaVersion()).maybeBinScala(scalaVersion())
     )
   }
 
@@ -364,8 +395,8 @@ object amm extends Cross[MainModule](fullCrossScalaVersions:_*){
         if (isScala2())
           Agg(
             Deps.scalaCompiler(scalaVersion()),
-            Deps.scalaparse,
-            Deps.scalaXml,
+            Deps.scalaparse.maybeBinScala(scalaVersion()),
+            Deps.scalaXml.maybeBinScala(scalaVersion())
           )
         else
           Agg[Dep](
@@ -416,9 +447,9 @@ object amm extends Cross[MainModule](fullCrossScalaVersions:_*){
     def crossFullScalaVersion = true
     def ivyDeps = Agg(
       Deps.bsp4j,
-      withDottyCompat(Deps.trees, scalaVersion()),
+      withDottyCompat(Deps.trees, scalaVersion()).maybeBinScala(scalaVersion()),
       Deps.scalaReflect(scalaVersion()),
-      withDottyCompat(Deps.scalaXml, scalaVersion())
+      withDottyCompat(Deps.scalaXml, scalaVersion()).maybeBinScala(scalaVersion())
     )
   }
 
@@ -440,7 +471,7 @@ object amm extends Cross[MainModule](fullCrossScalaVersions:_*){
         interp.api()
       )
       def ivyDeps = Agg(
-        withDottyCompat(Deps.mainargs, scalaVersion())
+        withDottyCompat(Deps.mainargs, scalaVersion()).maybeBinScala(scalaVersion())
       )
 
       def generatedSources = T{
@@ -496,7 +527,7 @@ object amm extends Cross[MainModule](fullCrossScalaVersions:_*){
         resolveDeps(ivyDeps, sources = true)()).distinct
       }
       def ivyDeps = super.ivyDeps() ++ amm.compiler().ivyDeps() ++ Agg(
-        withDottyCompat(Deps.scalazCore, scalaVersion())
+        withDottyCompat(Deps.scalazCore, scalaVersion()).maybeBinScala(scalaVersion())
       )
     }
   }
@@ -608,8 +639,8 @@ class MainModule(val crossScalaVersion: String)
   object test extends Tests{
     def moduleDeps = super.moduleDeps ++ Seq(amm.repl().test)
     def ivyDeps = super.ivyDeps() ++ Agg(
-      Deps.shapeless,
-      Deps.scalaJava8Compat
+      Deps.shapeless.maybeBinScala(scalaVersion()),
+      Deps.scalaJava8Compat.maybeBinScala(scalaVersion())
     )
 
 
@@ -698,7 +729,7 @@ class IntegrationModule(val crossScalaVersion: String) extends AmmInternalModule
   def moduleDeps = Seq(ops(), amm())
   def ivyDeps = T{
     if (scalaVersion().startsWith("2.13."))
-      Agg(Deps.cask)
+      Agg(Deps.cask.maybeBinScala(scalaVersion()))
     else
       Agg.empty
   }
@@ -724,7 +755,7 @@ class SshdModule(val crossScalaVersion: String) extends AmmModule{
       // slf4j-nop makes sshd server use logger that writes into the void
       Deps.slf4jNop,
       Deps.jsch,
-      withDottyCompat(Deps.scalacheck, scalaVersion())
+      withDottyCompat(Deps.scalacheck, scalaVersion()).maybeBinScala(scalaVersion())
     )
   }
 }
