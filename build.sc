@@ -142,8 +142,8 @@ trait AmmDependenciesResourceFileModule extends JavaModule{
 object ops extends Cross[OpsModule](binCrossScalaVersions:_*)
 class OpsModule(val crossScalaVersion: String) extends AmmModule{
   def ivyDeps = Agg(
-    ivy"com.lihaoyi::os-lib:0.7.1",
-    ivy"org.scala-lang.modules::scala-collection-compat:2.1.2"
+    ivy"com.lihaoyi::os-lib:0.7.2",
+    ivy"org.scala-lang.modules::scala-collection-compat:2.4.1"
   )
   def scalacOptions = super.scalacOptions().filter(!_.contains("acyclic"))
   object test extends Tests
@@ -153,7 +153,7 @@ object terminal extends Cross[TerminalModule](binCrossScalaVersions:_*)
 class TerminalModule(val crossScalaVersion: String) extends AmmModule{
   def ivyDeps = Agg(
     ivy"com.lihaoyi::sourcecode:0.2.1",
-    ivy"com.lihaoyi::fansi:0.2.8"
+    ivy"com.lihaoyi::fansi:0.2.10"
   )
   def compileIvyDeps = Agg(
     ivy"org.scala-lang:scala-reflect:$crossScalaVersion"
@@ -167,8 +167,8 @@ object amm extends Cross[MainModule](fullCrossScalaVersions:_*){
   class UtilModule(val crossScalaVersion: String) extends AmmModule{
     def moduleDeps = Seq(ops())
     def ivyDeps = Agg(
-      ivy"com.lihaoyi::pprint:0.6.0",
-      ivy"com.lihaoyi::fansi:0.2.9",
+      ivy"com.lihaoyi::pprint:0.6.1",
+      ivy"com.lihaoyi::fansi:0.2.10",
     )
     def compileIvyDeps = Agg(
       ivy"org.scala-lang:scala-reflect:$crossScalaVersion"
