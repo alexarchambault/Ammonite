@@ -225,9 +225,18 @@ object BasicTests extends TestSuite{
           )
 
           // 2. build & publish code locally
+          val compatScalaVersion = {
+            val scalaVersion = scala.util.Properties.versionNumberString
+            if (scalaVersion.contains("-bin-")) {
+              val next = scalaVersion.take(scalaVersion.indexOf("-bin-"))
+              val components = next.split('.')
+              (components.init :+ (components.last.toInt - 1).max(0).toString).mkString(".")
+            } else
+              scalaVersion
+          }
           os.proc("sbt", "-J-Xmx1g", "-batch", "-no-colors", "publishLocal").call(
             env = Map(
-              "SCALA_VERSION" -> scala.util.Properties.versionNumberString,
+              "SCALA_VERSION" -> compatScalaVersion,
               "FIRST_RUN" -> s"$firstRun",
               "VERSION" -> version
             ),
