@@ -2,10 +2,10 @@ name: Tests
 on:
   push:
     branches:
-      - master
+      - tmp-publish-scala-3
   pull_request:
     branches:
-      - master
+      - tmp-publish-scala-3
 jobs:
   test:
     strategy:

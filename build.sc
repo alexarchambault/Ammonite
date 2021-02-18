@@ -5,9 +5,9 @@ import $file.ci.upload
 
 import $ivy.`io.get-coursier::coursier-launcher:2.0.0-RC6-10`
 
-val ghOrg = "com-lihaoyi"
+val ghOrg = "alexarchambault"
 val ghRepo = "Ammonite"
-val masterBranch = "master"
+val masterBranch = "tmp-publish-scala-3"
 val homePage = "https://ammonite.io"
 
 val isMasterCommit =
@@ -262,7 +262,7 @@ trait AmmModule extends AmmInternalModule with PublishModule{
   def publishVersion = buildVersion
   def pomSettings = PomSettings(
     description = artifactName(),
-    organization = "com.lihaoyi",
+    organization = "com.github.alexarchambault.tmp.ammonite",
     url = s"https://github.com/${ghOrg}/${ghRepo}",
     licenses = Seq(License.MIT),
     versionControl = VersionControl.github(ghOrg, ghRepo),
