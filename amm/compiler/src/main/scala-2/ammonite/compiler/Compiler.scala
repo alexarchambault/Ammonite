@@ -39,6 +39,7 @@ trait Compiler extends ICompiler {
   var importsLen = 0
   var userCodeNestingLevel = -1
 
+  def parse(fileName: String, line: String): Either[String, Seq[Global#Tree]]
 }
 object Compiler{
   /**
