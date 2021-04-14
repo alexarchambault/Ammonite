@@ -121,9 +121,8 @@ object Deps {
 }
 
 // Adapted from https://github.com/lihaoyi/mill/blob/0.9.3/scalalib/src/MiscModule.scala/#L80-L100
-// Compared to the original code, we added the custom Resolver,
-// and ensure `scalaVersion()` rather than `crossScalaVersion` is used
-// when computing paths, as the former is always a valid Scala version,
+// Compared to the original code, we ensure `scalaVersion()` rather than `crossScalaVersion` is
+// used when computing paths, as the former is always a valid Scala version,
 // while the latter can be a 3.x version while we compile using Scala 2.x
 // (and later rely on dotty compatibility to mix Scala 2 / Scala 3 modules).
 trait CrossSbtModule extends mill.scalalib.SbtModule with mill.scalalib.CrossModuleBase { outer =>
