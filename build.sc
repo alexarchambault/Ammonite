@@ -985,10 +985,10 @@ def publishSonatype(publishArtifacts: mill.main.Tasks[PublishModule.PublishData]
         sys.env("SONATYPE_DEPLOY_USER") + ":" + sys.env("SONATYPE_DEPLOY_PASSWORD"),
         true,
         Seq("--passphrase", sys.env("SONATYPE_PGP_PASSWORD"), "--no-tty", "--pinentry-mode", "loopback", "--batch", "--yes", "-a", "-b"),
-        120000,
-        120000,
+        1200000,
+        1200000,
         T.ctx().log,
-        120000,
+        1200000,
       ).publishAll(
         true,
         x:_*
